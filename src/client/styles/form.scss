@@ -1,0 +1,23 @@
+form {
+    border: 1px solid #2e2e2e;
+    border-radius: 30px;
+    padding: 40px;
+    background-color: rgb(230, 230, 230);
+
+    input {
+        border: 1px solid #545454;
+        border-radius: 30px;
+        padding: 5px 20px;
+        width: 100%;
+        line-height: 16px;
+        margin: 10px 0;
+    }
+
+    #button {
+        text-transform: capitalize;
+        background-color: rgb(44, 44, 44);
+        color: white;
+    }
+
+}
+
