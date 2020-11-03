@@ -1,3 +1,5 @@
+import fetch from "node-fetch"
+
 function handleSubmit(event) {
     event.preventDefault()
 
@@ -7,33 +9,48 @@ function handleSubmit(event) {
     let cityImage = document.getElementById('city-image')
     let weatherText = document.getElementById('weather-data')
     let validFormText = Client.checkForName(formText)
-
+    const user_data = {
+        city: formText,
+        date: date
+    }
+    
     if(validFormText){
-
-        const user_data = {
-            city: formText,
-            date: date
+        
+        const getApiData = async () => {
+            const request = await fetch('http://localhost:8081/api-response')
+            try {
+                const data = await request.json()
+                console.log('retrieved data from server:', data)
+                cityName.innerHTML = formText
+                cityImage.setAttribute('src', data.imageURL)
+                weatherText.innerHTML = `${data.temp} celcius. ${data.weatherDetails}`
+    
+            } catch (error) {
+                console.log('error: ', error)
+            }
         }
 
-        // send user input to server for api call
-        fetch('http://localhost:8081/api-call', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(user_data)
-        })
+        const postData = async (userData) => {
+            const response = await fetch('http://localhost:8081/api-call', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(userData)
+            })
+            try {
+                const data = await response.json()
+                return data
+            } catch (error) {
+                console.log('error: ', error)
+            }
+        }
+        
+        const postThenGet = async () => {
+            postData(user_data)
+            .then(getApiData())      
+        }
 
-        console.log("::: Form Submitted :::")
-
-        // get api response from server
-        fetch('http://localhost:8081/api-response')
-        .then(res => res.json())
-        .then(data => {
-            console.log('retrieved data from server:', data)
-            cityName.innerHTML = formText
-            cityImage.setAttribute('src', data.imageURL)
-            weatherText.innerHTML = `${data.temp} celcius. ${data.weatherDetails}`
-        })
+        postThenGet()
         
     } else {
         document.getElementById('results').innerHTML = 'Please search for a city without numbers.'

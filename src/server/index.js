@@ -25,8 +25,8 @@ app.use(express.static('dist'))
 console.log(__dirname)
 
 app.get('/', function (req, res) {
-    // res.sendFile(path.resolve('dist/index.html'))
-    res.sendFile(path.resolve('src/client/views/index.html'))
+    res.sendFile(path.resolve('./dist/index.html'))
+    // res.sendFile(path.resolve('src/client/views/index.html'))
 })
 
 // designates what port the app will listen to for incoming requests
@@ -37,6 +37,7 @@ app.listen(port, function () {
 
 // send api response to client
 app.get('/api-response', function (req, res) {
+    console.log('client requesting data from server: ', data)
     res.send(data)
 })
 
@@ -72,63 +73,75 @@ app.post('/api-call', (req, res) => {
     const string2 = '&maxRows=1'
     const geoname_apiKey = `&username=${process.env.geonames_key}`
     const geoname_url = string1 + req.body.city + string2 + geoname_apiKey
-    
-    // fetch call to geoname api to get lat/long
-    fetch(geoname_url)
-    .then(res => res.json())
-    .then((res) => {
-        
-        data.countryName = res.geonames[0].countryName
-        data.lng = res.geonames[0].lng
-        data.lat = res.geonames[0].lat
-        // console.log(data)
-    })
 
-    // fetch weather data based on date
-    if(userDate <= currentDate) {
-
-        console.log('user date is within a week, getting weather for user date')
-
-        const weatherbit_url_current = `https://api.weatherbit.io/v2.0/forecast/daily?days=7${lat}${lng}&key=${weatherbitKey}`
-
-        console.log(weatherbit_url_current)
-
-        fetch(weatherbit_url_current)
-        .then(res => res.json())
-        .then((res) => {
-            for (let i = 0; i < res.data.length; i++) {
-                if(res.data[i].datetime === req.body.date) {
-                    data.temp = res.data[i].temp
-                    data.weatherDetails = res.data[i].weather.description
-                    break
-                }
-            }
-        })
-
-    } else {
-        console.log('user date is NOT less than current date, getting predicted weather')
-
-        const weatherbit_url_historical = `https://api.weatherbit.io/v2.0/history/daily?${lat}${lng}${startDate}${endDate}&key=${weatherbitKey}`
-
-        fetch(weatherbit_url_historical)
-        .then(res => res.json())
-        .then((res) => {
-            console.log(res.data[0].temp)
-            data.temp = res.data[0].temp
-            data.weatherDetails = 'Predicted temperate based on previous year'
-        })
-    }
-
-    // pixabay fetch call based on user search
+    // build pixabay url
     let city = `&q=${req.body.city}`
     const imageCount = '&per_page=3'
-    const pixabay_url = `https://pixabay.com/api/?key=${process.env.pixabay_key}${city}${imageCount}`
+    const category = '&category=places&image_type=photo'
+    const pixabay_url = `https://pixabay.com/api/?key=${process.env.pixabay_key}${city}${category}${imageCount}`
 
-    fetch(pixabay_url)
-    .then(res => res.json())
-    .then((res) => {
-        // console.log(res)
-        data.imageURL = res.hits[0].webformatURL
-    })
+    const getGeoLocation = async (url) => {
+        try {
+            let geoData = await fetch(url)
+            let res = await geoData.json()
+            data.countryName = res.geonames[0].countryName
+            data.lng = res.geonames[0].lng
+            data.lat = res.geonames[0].lat
+            getWeatherData()
+
+        } catch (error) {
+            console.log('error: ', error)
+        }
+    }
+    const getWeatherData = async () => {
+
+        if(userDate <= currentDate) {
+            console.log('user date is within a week, getting weather for user date')
+    
+            const weatherbit_url_current = `https://api.weatherbit.io/v2.0/forecast/daily?days=7${lat}${lng}&key=${weatherbitKey}`
+
+            try{
+                let weatherData = await fetch(weatherbit_url_current)
+                let res = await weatherData.json()
+                for (let i = 0; i < res.data.length; i++) {
+                    if(res.data[i].datetime === req.body.date) {
+                        data.temp = res.data[i].temp
+                        data.weatherDetails = res.data[i].weather.description
+                        break
+                    }
+                }
+                getImage()
+            } catch (error) {
+                console.log('error: ', error)
+                }
+        } else 
+            {
+            console.log('user date is NOT less than current date, getting predicted weather')
+    
+            const weatherbit_url_historical = `https://api.weatherbit.io/v2.0/history/daily?${lat}${lng}${startDate}${endDate}&key=${weatherbitKey}`
+
+            try {
+                let weatherData = await fetch(weatherbit_url_historical)
+                let res = await weatherData.json()
+                data.temp = res.data[0].temp
+                data.weatherDetails = 'Predicted temperate based on previous year'
+                getImage()
+            } catch (error) {
+                console.log('error: ', error)
+                }
+            }
+    }
+
+    const getImage = async () => {
+        try {
+            const image = await fetch(pixabay_url)
+            const res = await image.json()
+            data.imageURL = res.hits[0].webformatURL
+        } catch (error) {
+            console.log('error: ', error)
+        }
+    }
+
+    getGeoLocation(geoname_url)
 
 })

@@ -8,8 +8,6 @@ import './styles/form.scss'
 import './styles/footer.scss'
 import './styles/header.scss'
 
-console.log(checkForName);
-
 export {
     checkForName,
     handleSubmit,
@@ -17,9 +15,3 @@ export {
 }
 
 window.addEventListener('DOMContentLoaded', myEvents)
-
-const date = new Date()
-
-console.log(typeof date.getFullYear())
-console.log(date.getMonth())
-console.log(date.getDay())
