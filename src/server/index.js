@@ -84,33 +84,40 @@ app.post('/api-call', (req, res) => {
         try {
             let geoData = await fetch(url)
             let res = await geoData.json()
-            data.countryName = res.geonames[0].countryName
-            data.lng = res.geonames[0].lng
-            data.lat = res.geonames[0].lat
-            getWeatherData()
+            const data = {
+                countryName : res.geonames[0].countryName,
+                lng : res.geonames[0].lng,
+                lat : res.geonames[0].lat
+            }
+            return data
+            // getWeatherData()
 
         } catch (error) {
             console.log('error: ', error)
         }
     }
-    const getWeatherData = async () => {
+    const getWeatherData = async (cords) => {
 
         if(userDate <= currentDate) {
             console.log('user date is within a week, getting weather for user date')
     
-            const weatherbit_url_current = `https://api.weatherbit.io/v2.0/forecast/daily?days=7${lat}${lng}&key=${weatherbitKey}`
+            const weatherbit_url_current = `https://api.weatherbit.io/v2.0/forecast/daily?days=7&lat=${cords.lat}&lon=${cords.lng}&key=${weatherbitKey}`
+            // console.log(weatherbit_url_current)
 
             try{
                 let weatherData = await fetch(weatherbit_url_current)
                 let res = await weatherData.json()
                 for (let i = 0; i < res.data.length; i++) {
                     if(res.data[i].datetime === req.body.date) {
-                        data.temp = res.data[i].temp
-                        data.weatherDetails = res.data[i].weather.description
-                        break
+                        const data = {
+                            temp : res.data[i].temp,
+                            weatherDetails : res.data[i].weather.description
+
+                        }
+                        return data
                     }
                 }
-                getImage()
+                // getImage()
             } catch (error) {
                 console.log('error: ', error)
                 }
@@ -118,14 +125,17 @@ app.post('/api-call', (req, res) => {
             {
             console.log('user date is NOT less than current date, getting predicted weather')
     
-            const weatherbit_url_historical = `https://api.weatherbit.io/v2.0/history/daily?${lat}${lng}${startDate}${endDate}&key=${weatherbitKey}`
+            const weatherbit_url_historical = `https://api.weatherbit.io/v2.0/history/daily?&lat=${cords.lat}&lon=${cords.lng}${startDate}${endDate}&key=${weatherbitKey}`
 
             try {
                 let weatherData = await fetch(weatherbit_url_historical)
                 let res = await weatherData.json()
-                data.temp = res.data[0].temp
-                data.weatherDetails = 'Predicted temperate based on previous year'
-                getImage()
+                const data = {
+                    temp : res.data[0].temp,
+                    weatherDetails : 'Predicted temperate based on previous year'
+                }
+                return data
+                // getImage()
             } catch (error) {
                 console.log('error: ', error)
                 }
@@ -136,12 +146,38 @@ app.post('/api-call', (req, res) => {
         try {
             const image = await fetch(pixabay_url)
             const res = await image.json()
-            data.imageURL = res.hits[0].webformatURL
+            const data = {
+                imageURL : res.hits[0].webformatURL
+            }
+            return data
         } catch (error) {
             console.log('error: ', error)
         }
     }
+    // getGeoLocation(geoname_url)
 
-    getGeoLocation(geoname_url)
+    const update = async () => {
+        const cords = await getGeoLocation(geoname_url)
+        console.log('\x1b[36m%s\x1b[0m', 'cords data from update function: ', cords)
+
+        const weatherData = await getWeatherData(cords)
+        console.log('\x1b[36m%s\x1b[0m', 'weather data from update function: ', weatherData)
+
+        const image = await getImage()
+        console.log('\x1b[36m%s\x1b[0m', 'image from update function: ', image)
+
+        data.temp = weatherData.temp
+        data.weatherDetails = weatherData.weatherDetails
+        data.imageURL = image.imageURL
+
+        console.log('\x1b[36m%s\x1b[0m', 'ALL DATA: ', data)
+
+        
+        res.send(data)
+
+    }
+
+    update()
+
 
 })

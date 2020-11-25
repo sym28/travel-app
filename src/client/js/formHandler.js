@@ -17,27 +17,24 @@ function handleSubmit(event) {
     if(validFormText){
         
         const getApiData = async () => {
-            const request = await fetch('http://localhost:8081/api-response')
             try {
+                const request = await fetch('http://localhost:8081/api-response')
                 const data = await request.json()
-                console.log('retrieved data from server:', data)
-                cityName.innerHTML = formText
-                cityImage.setAttribute('src', data.imageURL)
-                weatherText.innerHTML = `${data.temp} celcius. ${data.weatherDetails}`
-    
+                return data
+
             } catch (error) {
                 console.log('error: ', error)
             }
         }
 
         const postData = async (userData) => {
-            const response = await fetch('http://localhost:8081/api-call', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(userData)
-            })
             try {
+                const response = await fetch('http://localhost:8081/api-call', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(userData)
+                })
                 const data = await response.json()
                 return data
             } catch (error) {
@@ -45,12 +42,18 @@ function handleSubmit(event) {
             }
         }
         
-        const postThenGet = async () => {
-            postData(user_data)
-            .then(getApiData())      
+        const populateUI = async () => {
+            // post userinput then get data from server
+            await postData(user_data)
+            const data = await getApiData()
+
+            // populate dom elements with server data
+            cityName.innerHTML = formText
+            cityImage.setAttribute('src', data.imageURL)
+            weatherText.innerHTML = `${data.temp} celcius. ${data.weatherDetails}`
         }
 
-        postThenGet()
+        populateUI()
         
     } else {
         document.getElementById('results').innerHTML = 'Please search for a city without numbers.'
